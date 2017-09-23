@@ -1,0 +1,196 @@
+#!/bin/bash
+#
+# Copyright (c) 2017 Gaël PORTAY <gael.portay@savoirfairelinux.com>
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License version 3 as published by the
+# Free Software Foundation.
+#
+
+set -e
+set -o pipefail
+
+VERSION="0.1"
+INT32="int32"
+INT64="int64"
+UINT32="uint32"
+UINT64="uint64"
+
+fatal() {
+	echo "Error: $*!" >&2
+	exit 1
+}
+
+deprotoc_c() {
+	sed -n '
+1isyntax = "proto2";\n
+
+/^typedef enum \+_/,/} .\+;/ {
+	/typedef enum \+_/s,typedef enum \+_\(.*\) {,enum \1 {,;/PROTOBUF_C__/d
+	/^  .\+__.\+ = /s/[A-Z0-9_]\+__\([A-Z0-9_]\+ = [0-9]\+\),\?/\1;/
+	/^} .\+;$/s, .\+;,,
+}
+
+/^struct \+_/s,struct \+_\(.*\),message \1 {,; {
+	/^{/d
+	/^};$/s,;$,,
+	/ProtobufCMessage \+base/d
+	/protobuf_c_boolean \+has_/{s,protobuf_c_boolean.*$,optional,;N;s/\n \+/ /}
+	/size_t \+n_/{s,size_t \+.*$,repeated,;N;s/\n \+/ /}
+	/uint32_t/s,uint32_t,'"$UINT32"',
+	/uint64_t/s,uint64_t,'"$UINT64"',
+	/int32_t/s,int32_t,'"$INT32"',
+	/int64_t/s,int64_t,'"$INT64"',
+	/u\?int[0-9]\+_t/s,_t,,
+	/char \+\*/s,char \+\*,string ,
+	/protobuf_c_boolean \+/s,protobuf_c_boolean,bool,
+	/ProtobufCBinaryData \+/s,ProtobufCBinaryData,bytes,
+	/.* \*.*;/s,\*,,
+}
+
+/^message \+/,/}/p
+/^enum \+/,/}/p
+' "$@"
+}
+
+usage() {
+	cat <<EOF
+Usage: protoc-c [OPTION] [PROTO_CFILES...]
+Parse generated PROTO_CFILES and output reverse to stdout, based on the options
+given:
+  --version                   Show version info and exit.
+  -h, --help                  Show this text and exit.
+  -p,--repeated-packed        Packed repeated fields to get a more efficient
+                              encoding.
+  --int32 int32|sint32|sfixed32
+  --int64 int64|sint64|sfixed64
+                              Specify scalar 32-bit and 64-bit signed integer
+                              types. Default are int32 and int64.
+                              int32 uses variable-length encoding but is
+                              inefficient for encoding negative numbers; if
+                              field is likely to have negative values, use
+                              sint32 instead.
+                              int64 uses variable-length encoding but is
+                              inefficient for encoding negative numbers; if
+                              field is likely to have negative values, use
+                              sint64 instead.
+  --uint32 uint32|fixed32
+  --uint64 uint64|fixed64
+                              Specify scalar 32-bit and 64-bit unsigned integer
+                              types. Default are uint32 and uint64.
+                              uint32 uses variable-length encoding.
+                              uint64 uses variable-length encoding.
+  --signed                    Uses sint32 and sint64.
+                              sint32 uses variable-length encoding and is more
+                              efficient to encode negative numbers than regular
+                              int32s.
+                              sint64 uses variable-length encoding and is more
+                              efficient to encode negative numbers than regular
+                              int64s.
+                              Same as --int32 sint32 and --int64 sint64.
+  --signed-fixed              Uses sfixed32 and sfixed64.
+                              sfixed32 is always four bytes.
+                              sfixed64 is always eight bytes.
+                              Same as --int32 sfixed32 and --int64 sfixed64.
+  --fixed                     Uses fixed32 and fixed64.
+                              fixed32 is always four bytes and more efficient
+                              than uint32 if values are often greater than 228.
+                              fixed64 is always eight bytes and more efficient
+                              than uint64 if values are often greater than 256.
+                              Same as --uint32 fixed32 and --uint64 fixed64.
+EOF
+}
+
+parse_argument() {
+	CFILES=()
+	while [ $# -ne 0 ]; do
+		if [[ $1 =~ (-h|--help) ]]; then
+			usage
+			exit 0
+		elif [[ $1 == --version ]]; then
+			echo "$VERSION"
+			exit
+		elif [[ $1 =~ (-p|--repeated-packed) ]]; then
+			PACKED=1
+		elif [[ $1 == --int32 ]]; then
+			shift
+			INT32="$1"
+		elif [[ $1 == --int64 ]]; then
+			shift
+			INT64="$1"
+		elif [[ $1 == --uint32 ]]; then
+			shift
+			UINT32="$1"
+		elif [[ $1 == --uint64 ]]; then
+			shift
+			UINT64="$1"
+		elif [[ "$1" == --fixed ]]; then
+			UINT32="fixed32"
+			UINT64="fixed64"
+		elif [[ "$1" == --signed ]]; then
+			INT32="sint32"
+			INT64="sint64"
+		elif [[ "$1" == --signed-fixed ]]; then
+			INT32="sfixed32"
+			INT64="sfixed64"
+		elif [[ $1 == -- ]]; then
+			shift
+			break
+		elif [[ -e $1 ]] || [[ $1 == - ]]; then
+			CFILES=("${CFILES[@]}" $1)
+		elif [[ $1 =~ ^-- ]] || [[ $1 =~ ^- ]]; then
+			fatal "$1: No such argument"
+		else
+			fatal "$1: No such file"
+			break
+		fi
+		shift
+	done
+	CFILES=("${CFILES[@]}" "$@")
+}
+
+parse_argument "$@"
+set -- "${CFILES[@]}"
+
+echo "/* Generated by the protocol buffer DEcompiler.  EDIT AS NEEDED! */"
+echo
+
+deprotoc_c "$@" | \
+while read -r line; do
+	words=($line)
+
+	# end of message or enum
+	if [[ ${words[0]} =~ ^} ]]; then
+		unset tag
+		unset indent
+	# message field: assign missing tags
+	elif [[ $tag ]]; then
+		tag=$((tag+1))
+		line="${line/;/ = $tag;}"
+
+		# Expected "required", "optional", or "repeated".
+		if [[ ! ${words[0]} =~ (required|optional|repeated) ]]; then
+			line="required $line"
+		fi
+
+		# Set option "packed" to repeated.
+		if [[ $PACKED ]] && [[ ${words[0]} == repeated ]]; then
+			line="${line/;/ [packed=true];}"
+		fi
+
+		words=($line)
+	# begin of message or enum
+	elif [[ ${words[0]} =~ ^(message|enum) ]]; then
+		indent="  "
+
+		# need to assign missing tags to message
+		if [[ ${words[0]} == message ]]; then
+			tag=0
+		fi
+
+		echo "${words[*]}"
+		continue
+	fi
+
+	echo "$indent${words[*]}"
+done

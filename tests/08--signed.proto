@@ -1,0 +1,8 @@
+/* Scalar Value Signed */
+
+syntax = "proto2";
+
+message SignedValue {
+	required sint32 sint32_scalar = 1;
+	required sint64 sint64_scalar = 2;
+}

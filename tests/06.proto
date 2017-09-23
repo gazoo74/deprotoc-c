@@ -1,0 +1,8 @@
+/* Reserved Fields */
+
+syntax = "proto2";
+
+message Foo {
+	reserved 2, 15, 9 to 11;
+	reserved "foo", "bar";
+}

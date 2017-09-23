@@ -1,0 +1,8 @@
+/* Scalar Value Fixed */
+
+syntax = "proto2";
+
+message FixedValue {
+	required fixed32 fixed32_scalar = 1;
+	required fixed64 fixed64_scalar = 2;
+}

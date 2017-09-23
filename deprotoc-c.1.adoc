@@ -1,0 +1,117 @@
+= deprotoc-c(1)
+:doctype: manpage
+:author: Gaël PORTAY
+:email: gael.portay@savoirfairelinux.com
+:lang: en
+:man manual: deprotoc-c Manual
+:man source: deprotoc-c 0.1
+
+== NAME
+
+deprotoc-c - decompile protobuf C header
+
+== SYNOPSIS
+
+*deprotoc-c* [OPTION] [PROTO_CFILES...]
+
+== DESCRIPTION
+
+Parse generated **PROTO_CFILES** and output reverse to stdout.
+
+== OPTIONS
+
+**--version**::
+	Show version info and exit.
+
+**-h, --help**::
+	Show this text and exit.
+
+**-p,--repeated-packed**::
+	Packed *repeated* fields to get a more efficient encoding.
+
+**--int32 int32|sint32|sfixed32**::
+**--int64 int64|sint64|sfixed64**::
+	Specify scalar **32-bit** and **64-bit** signed integer types. Default
+	are **int32** and **int64**.
+	**int32** uses variable-length encoding but is inefficient for encoding
+	negative numbers; if field is likely to have negative values, use
+	**sint32** instead.
+	**int64** uses variable-length encoding but is inefficient for encoding
+	negative numbers; if field is likely to have negative values, use
+	**sint64** instead.
+
+**--uint32 uint32|fixed32**::
+**--uint64 uint64|fixed64**::
+	Specify scalar **32-bit** and **64-bit** unsigned integer types. Default
+	are **uint32** and **uint64**.
+	**uint32** uses variable-length encoding.
+	**uint64** uses variable-length encoding.
+
+**--fixed**::
+	Uses **fixed32** and **fixed64**.
+	**fixed32** is always four bytes and more efficient than uint32 if
+	values are often greater than *228*.
+	**fixed64** is always eight bytes and more efficient than uint64 if
+	values are often greater than *256*.
+	Same as __--uint32 fixed32__ and __--uint64 fixed64__.
+
+**--signed**::
+	Uses **sint32** and **sint64**.
+	**sint32** uses variable-length encoding and is more efficient to encode
+	negative numbers than regular **int32s**.
+	**sint64** uses variable-length encoding and is more efficient to encode
+	negative numbers than regular **int64s**.
+	Same as __--int32 sint32__ and __--int64 sint64__.
+
+**--signed-fixed**::
+	Uses **sfixed32** and **sfixed64**.
+	**sfixed32** is always four bytes.
+	**sfixed64** is always eight bytes.
+	Same as __--int32 sfixed32__ and __--int64 sfixed64__.
+
+== EXAMPLES
+
+Create a simple proto file.
+
+	$ cat <<EOF >simple.proto
+	/* https://developers.google.com/protocol-buffers/docs/proto#simple */
+	syntax = "proto2";
+	message SearchRequest {
+		required string query = 1;
+		optional int32 page_number = 2;
+		optional int32 result_per_page = 3;
+	}
+	EOF
+
+Compile a C output.
+
+	$ protoc-c --c_out=. simple.proto
+
+Decompile it.
+
+	$ deprotoc-c simple.pb-c.h
+	message SearchRequest {
+	  string query;
+	  optional int32 page_number;
+	  optional int32 result_per_page;
+	}
+
+== BUGS
+
+Report bugs at *https://github.com/gazoo74/deprotoc-c/issues*
+
+== AUTHOR
+
+Written by Gaël PORTAY *gael.portay@savoirfairelinux.com*
+
+== COPYRIGHT
+
+Copyright (c) 2017 Gaël PORTAY
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License version 3 as published by the
+Free Software Foundation.
+
+== SEE ALSO
+
+**protoc-c(1)**

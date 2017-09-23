@@ -1,0 +1,15 @@
+/* Scalar Value Types */
+
+syntax = "proto2";
+
+message ScalarValue {
+	required double double_scalar = 1;
+	required float float_scalar = 2;
+	required int32 int32_scalar = 3;
+	required int64 int64_scalar = 4;
+	required uint32 uint32_scalar = 5;
+	required uint64 uint64_scalar = 6;
+	required bool bool_scalar = 7;
+	required string string_scalar = 8;
+	required bytes bytes_scalar = 9;
+}

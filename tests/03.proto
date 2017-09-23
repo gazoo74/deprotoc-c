@@ -1,0 +1,7 @@
+/* Specifying repeated Field Rules */
+
+syntax = "proto2";
+
+message Message {
+	repeated int32 scalar = 1;
+}

@@ -1,0 +1,8 @@
+/* Scalar Value Signed Fixed */
+
+syntax = "proto2";
+
+message SFixedValue {
+	required sfixed32 sfixed32_scalar = 1;
+	required sfixed64 sfixed64_scalar = 2;
+}

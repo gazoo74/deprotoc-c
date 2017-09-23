@@ -1,0 +1,7 @@
+/* Specifying required Field Rules */
+
+syntax = "proto2";
+
+message Message {
+	required int32 scalar = 1;
+}

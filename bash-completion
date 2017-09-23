@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+# Copyright (c) 2017 Gaël PORTAY <gael.portay@savoirfairelinux.com>
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License version 3 as published by the
+# Free Software Foundation.
+#
+
+_deprotoc_c()
+{
+	local cur prev words cword
+	_init_completion || return
+
+	case $prev in
+	--int32)
+		COMPREPLY=( $(compgen -W "int32 sint32 sfixed32" -- "$cur") )
+		return
+		;;
+	--int64)
+		COMPREPLY=( $(compgen -W "int64 sint64 sfixed64" -- "$cur") )
+		return
+		;;
+	--uint32)
+		COMPREPLY=( $(compgen -W "uint32 fixed32" -- "$cur") )
+		return
+		;;
+	--uint64)
+		COMPREPLY=( $(compgen -W "uint64 fixed64" -- "$cur") )
+		return
+		;;
+	esac
+
+	local short_opts="-p -h"
+	local long_opts="--repeated-packed --version --help"
+	long_opts+=" --int32 --int64 --uint32 --uint64"
+	long_opts+=" --fixed --signed-fixed --signed"
+	if [[ "$cur" == -* ]]; then
+		COMPREPLY=( $( compgen -W "$short_opts $long_opts" -- "$cur" ) )
+		return
+	fi
+
+	_filedir pb-c.h
+} &&
+complete -F _deprotoc_c deprotoc-c
