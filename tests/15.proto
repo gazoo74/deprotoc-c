@@ -5,7 +5,7 @@ syntax = "proto2";
 message SearchResponse {
 	message Result {
 		required string url = 1;
-		optional string title = 2;
+		required string title = 2;
 		repeated string snippets = 3;
 	}
 	repeated Result result = 1;
