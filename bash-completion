@@ -13,6 +13,10 @@ _deprotoc_c()
 	_init_completion || return
 
 	case $prev in
+	-s|--syntax)
+		COMPREPLY=( $(compgen -W "proto2 proto3" -- "$cur") )
+		return
+		;;
 	--int32)
 		COMPREPLY=( $(compgen -W "int32 sint32 sfixed32" -- "$cur") )
 		return
@@ -31,8 +35,8 @@ _deprotoc_c()
 		;;
 	esac
 
-	local short_opts="-p -h"
-	local long_opts="--repeated-packed --version --help"
+	local short_opts="-s -p -h"
+	local long_opts="--syntax --repeated-packed --version --help"
 	long_opts+=" --int32 --int64 --uint32 --uint64"
 	long_opts+=" --fixed --signed-fixed --signed"
 	if [[ "$cur" == -* ]]; then

@@ -26,6 +26,9 @@ Parse generated **PROTO_CFILES** and output reverse to stdout.
 **-h, --help**::
 	Show this text and exit.
 
+*-s,--syntax proto2|proto3*::
+	Specify protobuf version syntax. Default is **proto2**.
+
 **-p,--repeated-packed**::
 	Packed *repeated* fields to get a more efficient encoding.
 

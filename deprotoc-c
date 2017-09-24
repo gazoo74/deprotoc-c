@@ -11,6 +11,7 @@ set -e
 set -o pipefail
 
 VERSION="0.1"
+SYNTAX="proto2"
 INT32="int32"
 INT64="int64"
 UINT32="uint32"
@@ -23,7 +24,7 @@ fatal() {
 
 deprotoc_c() {
 	sed -n '
-1isyntax = "proto2";\n
+1isyntax = "'"$SYNTAX"'";\n
 
 /^typedef enum \+_/,/} .\+;/ {
 	/typedef enum \+_/s,typedef enum \+_\(.*\) {,enum \1 {,;/PROTOBUF_C__/d
@@ -61,6 +62,8 @@ Parse generated PROTO_CFILES and output reverse to stdout, based on the options
 given:
   --version                   Show version info and exit.
   -h, --help                  Show this text and exit.
+  -s, --syntax proto2|proto3  Specify protobuf version syntax.
+                              Default is proto2.
   -p,--repeated-packed        Packed repeated fields to get a more efficient
                               encoding.
   --int32 int32|sint32|sfixed32
@@ -111,6 +114,9 @@ parse_argument() {
 		elif [[ $1 == --version ]]; then
 			echo "$VERSION"
 			exit
+		elif [[ $1 =~ (--syntax) ]]; then
+			shift
+			SYNTAX="$1"
 		elif [[ $1 =~ (-p|--repeated-packed) ]]; then
 			PACKED=1
 		elif [[ $1 == --int32 ]]; then
@@ -180,14 +186,16 @@ while read -r line; do
 		tag=$((tag+1))
 		line="${line/;/ = $tag;}"
 
-		# Expected "required", "optional", or "repeated".
-		if [[ ! ${words[0]} =~ (required|optional|repeated) ]]; then
-			line="required $line"
-		fi
+		# proto2: Expected "required", "optional", or "repeated".
+		if [[ $SYNTAX == proto2 ]]; then
+			if [[ ! ${words[0]} =~ (required|optional|repeated) ]]; then
+				line="required $line"
+			fi
 
-		# Set option "packed" to repeated.
-		if [[ $PACKED ]] && [[ ${words[0]} == repeated ]]; then
-			line="${line/;/ [packed=true];}"
+			# Set option "packed" to repeated.
+			if [[ $PACKED ]] && [[ ${words[0]} == repeated ]]; then
+				line="${line/;/ [packed=true];}"
+			fi
 		fi
 
 		words=($line)
@@ -219,7 +227,11 @@ while read -r line; do
 		continue
 	# message field
 	elif [[ $nested_name ]]; then
-		full_type="${words[1]}"
+		full_type="${words[0]}"
+		if [[ $SYNTAX == proto2 ]]; then
+			full_type="${words[1]}"
+		fi
+
 		type="${NESTED[$full_type]}"
 		if [[ $type ]]; then
 			echo "${NESTED[$full_type]}"
