@@ -49,6 +49,12 @@ all:
 clean:
 	rm -f *.pb-c.*
 
+.PHONY: compile
+compile:
+	@for proto in [0-9][0-9]*.proto; do \
+		$(MAKE) OPTS=$$opts --silent --no-print-directory $${proto%.*}.pb-c.h; \
+	done; \
+
 test-%: %.pb-c.h %.pb-c.c
 	@cat $< | deprotoc-c $(OPTS) | tee /dev/stderr | sed -e '1d' | \
 	diff $(DIFF_OPTS) - <(cat $*.proto             | sed -e '1d;/reserved \+/d;s, \[default = .*\],,')
