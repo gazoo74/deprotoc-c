@@ -10,7 +10,7 @@
 set -e
 set -o pipefail
 
-VERSION="0.1"
+VERSION="0.2"
 SYNTAX="proto2"
 INT32="int32"
 INT64="int64"
