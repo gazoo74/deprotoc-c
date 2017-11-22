@@ -16,11 +16,11 @@ Run the following command to install *deprotoc-c(1)*
 
 Traditional variables *DESTDIR* and *PREFIX* can be overridden
 
-	$ sudo PREFIX=/opt/deprotoc-c ./install.sh
+	$ sudo make install PREFIX=/opt/deprotoc-c
 
 or
 
-	$ DESTDIR=$PWD/pkg PREFIX=/usr ./install.sh
+	$ make install DESTDIR=$PWD/pkg PREFIX=/usr
 
 ## BUGS
 
